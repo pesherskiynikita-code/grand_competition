@@ -1,12 +1,15 @@
 package academy.tochkavhoda.competition.service;
 
+import academy.tochkavhoda.competition.dao.UserDao;
 import academy.tochkavhoda.competition.dto.response.ErrorDtoResponse;
 import academy.tochkavhoda.competition.exception.ServerErrorCode;
 import academy.tochkavhoda.competition.exception.ServerException;
+import academy.tochkavhoda.competition.model.User;
 import academy.tochkavhoda.competition.server.ServerResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -50,6 +53,26 @@ public final class ServiceUtils {
     public static void checkNotBlank(String value, ServerErrorCode errorCode) throws ServerException {
         if (value == null || value.isBlank()) {
             throw new ServerException(errorCode);
+        }
+    }
+
+    public static User getUserByToken(UserDao userDao, String token) throws ServerException {
+        User user = userDao.getByToken(token);
+        if (user == null) {
+            throw new ServerException(ServerErrorCode.WRONG_TOKEN);
+        }
+        return user;
+    }
+
+    /**
+     * Список направлений не пустой и не содержит пустых строк.
+     */
+    public static void checkDirections(List<String> directions) throws ServerException {
+        if (directions == null || directions.isEmpty()) {
+            throw new ServerException(ServerErrorCode.EMPTY_DIRECTIONS);
+        }
+        for (String direction : directions) {
+            checkNotBlank(direction, ServerErrorCode.EMPTY_DIRECTION);
         }
     }
 

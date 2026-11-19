@@ -35,7 +35,7 @@ public class UserService {
 
     public ServerResponse logout(String token) {
         try {
-            getUserByToken(token);
+            ServiceUtils.getUserByToken(userDao, token);
             sessionDao.logout(token);
             return ServiceUtils.success(new EmptySuccessDtoResponse());
         } catch (ServerException e) {
@@ -45,19 +45,11 @@ public class UserService {
 
     public ServerResponse leave(String token) {
         try {
-            userDao.delete(getUserByToken(token));
+            userDao.delete(ServiceUtils.getUserByToken(userDao, token));
             return ServiceUtils.success(new EmptySuccessDtoResponse());
         } catch (ServerException e) {
             return ServiceUtils.error(e);
         }
-    }
-
-    private User getUserByToken(String token) throws ServerException {
-        User user = userDao.getByToken(token);
-        if (user == null) {
-            throw new ServerException(ServerErrorCode.WRONG_TOKEN);
-        }
-        return user;
     }
 
     private static void validate(LoginDtoRequest request) throws ServerException {

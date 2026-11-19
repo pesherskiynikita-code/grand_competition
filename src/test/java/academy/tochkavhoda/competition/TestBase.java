@@ -1,8 +1,13 @@
 package academy.tochkavhoda.competition;
 
+import academy.tochkavhoda.competition.dto.request.AddApplicationsDtoRequest;
+import academy.tochkavhoda.competition.dto.request.ApplicationDtoRequest;
+import academy.tochkavhoda.competition.dto.request.ApplicationIdDtoRequest;
 import academy.tochkavhoda.competition.dto.request.LoginDtoRequest;
+import academy.tochkavhoda.competition.dto.request.RateApplicationDtoRequest;
 import academy.tochkavhoda.competition.dto.request.RegisterExpertDtoRequest;
 import academy.tochkavhoda.competition.dto.request.RegisterParticipantDtoRequest;
+import academy.tochkavhoda.competition.dto.response.AddApplicationsDtoResponse;
 import academy.tochkavhoda.competition.dto.response.ErrorDtoResponse;
 import academy.tochkavhoda.competition.dto.response.TokenDtoResponse;
 import academy.tochkavhoda.competition.exception.ServerErrorCode;
@@ -62,6 +67,47 @@ public abstract class TestBase {
         String token = gson.fromJson(response.getResponseData(), TokenDtoResponse.class).getToken();
         assertNotNull(token);
         return token;
+    }
+
+    protected String registerParticipantAndLogin(String login) {
+        assertEmptySuccess(registerParticipant(login, "secret123"));
+        return loginAndGetToken(login, "secret123");
+    }
+
+    protected String registerExpertAndLogin(String login) {
+        assertEmptySuccess(registerExpert(login, "secret123"));
+        return loginAndGetToken(login, "secret123");
+    }
+
+    protected ApplicationDtoRequest application(String title, int amount) {
+        return new ApplicationDtoRequest(title, "Описание заявки " + title, List.of("IT"), amount);
+    }
+
+    protected ServerResponse addApplications(String token, ApplicationDtoRequest... applications) {
+        return server.addApplications(token, gson.toJson(new AddApplicationsDtoRequest(List.of(applications))));
+    }
+
+    /**
+     * Подаёт одну заявку и возвращает её номер.
+     */
+    protected int addApplication(String token, String title, int amount) {
+        ServerResponse response = addApplications(token, application(title, amount));
+        assertSuccess(response);
+        List<Integer> ids = gson.fromJson(response.getResponseData(), AddApplicationsDtoResponse.class).getIds();
+        assertEquals(1, ids.size());
+        return ids.get(0);
+    }
+
+    protected ServerResponse cancelApplication(String token, int applicationId) {
+        return server.cancelApplication(token, gson.toJson(new ApplicationIdDtoRequest(applicationId)));
+    }
+
+    protected ServerResponse rateApplication(String token, int applicationId, int rating) {
+        return server.rateApplication(token, gson.toJson(new RateApplicationDtoRequest(applicationId, rating)));
+    }
+
+    protected ServerResponse deleteRating(String token, int applicationId) {
+        return server.deleteRating(token, gson.toJson(new ApplicationIdDtoRequest(applicationId)));
     }
 
     protected void assertSuccess(ServerResponse response) {
