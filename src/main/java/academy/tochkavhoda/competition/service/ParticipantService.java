@@ -2,8 +2,6 @@ package academy.tochkavhoda.competition.service;
 
 import academy.tochkavhoda.competition.dao.ApplicationDao;
 import academy.tochkavhoda.competition.dao.UserDao;
-import academy.tochkavhoda.competition.daoimpl.ApplicationDaoImpl;
-import academy.tochkavhoda.competition.daoimpl.UserDaoImpl;
 import academy.tochkavhoda.competition.dto.request.AddApplicationsDtoRequest;
 import academy.tochkavhoda.competition.dto.request.ApplicationDtoRequest;
 import academy.tochkavhoda.competition.dto.request.ApplicationIdDtoRequest;
@@ -14,7 +12,6 @@ import academy.tochkavhoda.competition.exception.ServerErrorCode;
 import academy.tochkavhoda.competition.exception.ServerException;
 import academy.tochkavhoda.competition.model.Application;
 import academy.tochkavhoda.competition.model.Participant;
-import academy.tochkavhoda.competition.server.ServerResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,62 +20,51 @@ import java.util.List;
  * Операции участника: регистрация, подача и отмена заявок.
  */
 public class ParticipantService {
-    private final UserDao userDao = new UserDaoImpl();
-    private final ApplicationDao applicationDao = new ApplicationDaoImpl();
+    private final UserDao userDao;
+    private final ApplicationDao applicationDao;
 
-    public ServerResponse registerParticipant(String requestJson) {
-        try {
-            RegisterParticipantDtoRequest request =
-                    ServiceUtils.getClassFromJson(requestJson, RegisterParticipantDtoRequest.class);
-            validate(request);
-            Participant participant = new Participant(request.getFirstName(), request.getLastName(),
-                    request.getCompanyName(), request.getLogin(), request.getPassword());
-            userDao.insert(participant);
-            return ServiceUtils.success(new EmptySuccessDtoResponse());
-        } catch (ServerException e) {
-            return ServiceUtils.error(e);
-        }
+    public ParticipantService(UserDao userDao, ApplicationDao applicationDao) {
+        this.userDao = userDao;
+        this.applicationDao = applicationDao;
+    }
+
+    public EmptySuccessDtoResponse registerParticipant(RegisterParticipantDtoRequest request) throws ServerException {
+        validate(request);
+        Participant participant = new Participant(request.getFirstName(), request.getLastName(),
+                request.getCompanyName(), request.getLogin(), request.getPassword());
+        userDao.insert(participant);
+        return new EmptySuccessDtoResponse();
     }
 
     /**
      * Подача одной или нескольких заявок. Если хоть одна заявка неверна, не сохраняется ни одна.
      */
-    public ServerResponse addApplications(String token, String requestJson) {
-        try {
-            Participant participant = getParticipant(token);
-            AddApplicationsDtoRequest request =
-                    ServiceUtils.getClassFromJson(requestJson, AddApplicationsDtoRequest.class);
-            validate(request);
-            List<Integer> ids = new ArrayList<>();
-            for (ApplicationDtoRequest dto : request.getApplications()) {
-                Application application = new Application(participant, dto.getTitle(), dto.getDescription(),
-                        dto.getDirections(), dto.getAmount());
-                ids.add(applicationDao.insert(application));
-            }
-            return ServiceUtils.success(new AddApplicationsDtoResponse(ids));
-        } catch (ServerException e) {
-            return ServiceUtils.error(e);
+    public AddApplicationsDtoResponse addApplications(String token, AddApplicationsDtoRequest request)
+            throws ServerException {
+        Participant participant = getParticipant(token);
+        validate(request);
+        List<Integer> ids = new ArrayList<>();
+        for (ApplicationDtoRequest dto : request.getApplications()) {
+            Application application = new Application(participant, dto.getTitle(), dto.getDescription(),
+                    dto.getDirections(), dto.getAmount());
+            ids.add(applicationDao.insert(application));
         }
+        return new AddApplicationsDtoResponse(ids);
     }
 
     /**
      * Отмена своей заявки. Оценки этой заявки тоже удаляются.
      */
-    public ServerResponse cancelApplication(String token, String requestJson) {
-        try {
-            Participant participant = getParticipant(token);
-            ApplicationIdDtoRequest request =
-                    ServiceUtils.getClassFromJson(requestJson, ApplicationIdDtoRequest.class);
-            Application application = applicationDao.getById(request.getApplicationId());
-            // чужую заявку отменить нельзя: для участника её как будто нет
-            if (application == null || !application.getParticipant().equals(participant)) {
-                throw new ServerException(ServerErrorCode.APPLICATION_NOT_FOUND);
-            }
-            applicationDao.delete(application);
-            return ServiceUtils.success(new EmptySuccessDtoResponse());
-        } catch (ServerException e) {
-            return ServiceUtils.error(e);
+    public EmptySuccessDtoResponse cancelApplication(String token, ApplicationIdDtoRequest request)
+            throws ServerException {
+        Participant participant = getParticipant(token);
+        Application application = applicationDao.getById(request.getApplicationId());
+        // чужую заявку отменить нельзя: для участника её как будто нет
+        if (application == null || !application.getParticipant().equals(participant)) {
+            throw new ServerException(ServerErrorCode.APPLICATION_NOT_FOUND);
         }
+        applicationDao.delete(application);
+        return new EmptySuccessDtoResponse();
     }
 
     private Participant getParticipant(String token) throws ServerException {
