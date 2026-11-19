@@ -11,7 +11,16 @@ public enum ServerErrorCode {
     EMPTY_DIRECTION("Название направления не может быть пустым"),
     LOGIN_ALREADY_EXISTS("Пользователь с таким логином уже существует"),
     WRONG_LOGIN_OR_PASSWORD("Неверный логин или пароль"),
-    WRONG_TOKEN("Недействительный токен");
+    WRONG_TOKEN("Недействительный токен"),
+    NOT_PARTICIPANT("Операция доступна только участнику"),
+    NOT_EXPERT("Операция доступна только эксперту"),
+    EMPTY_APPLICATIONS("Список заявок не может быть пустым"),
+    EMPTY_TITLE("Название заявки не может быть пустым"),
+    EMPTY_DESCRIPTION("Описание заявки не может быть пустым"),
+    WRONG_AMOUNT("Запрашиваемая сумма должна быть больше нуля"),
+    APPLICATION_NOT_FOUND("Заявка не найдена"),
+    WRONG_RATING("Оценка должна быть от 1 до 5"),
+    RATING_NOT_FOUND("Вы не оценивали эту заявку");
 
     private final String errorString;
 

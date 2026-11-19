@@ -1,21 +1,19 @@
 package academy.tochkavhoda.competition.service;
 
-import academy.tochkavhoda.competition.dto.response.ErrorDtoResponse;
+import academy.tochkavhoda.competition.dao.UserDao;
 import academy.tochkavhoda.competition.exception.ServerErrorCode;
 import academy.tochkavhoda.competition.exception.ServerException;
-import academy.tochkavhoda.competition.server.ServerResponse;
+import academy.tochkavhoda.competition.model.User;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Общие для всех сервисов операции: разбор JSON, формирование ответов, проверки полей.
+ * Общие для всех сервисов операции: разбор JSON, поиск пользователя по токену, проверки полей.
  */
 public final class ServiceUtils {
-    public static final int SUCCESS_CODE = 200;
-    public static final int ERROR_CODE = 400;
-
     private static final Gson GSON = new Gson();
     private static final Pattern LOGIN_PATTERN = Pattern.compile("[A-Za-z0-9_]{4,32}");
     private static final int MIN_PASSWORD_LENGTH = 8;
@@ -39,17 +37,29 @@ public final class ServiceUtils {
         return result;
     }
 
-    public static ServerResponse success(Object dtoResponse) {
-        return new ServerResponse(SUCCESS_CODE, GSON.toJson(dtoResponse));
-    }
-
-    public static ServerResponse error(ServerException e) {
-        return new ServerResponse(ERROR_CODE, GSON.toJson(new ErrorDtoResponse(e.getErrorCode().getErrorString())));
+    public static User getUserByToken(UserDao userDao, String token) throws ServerException {
+        User user = userDao.getByToken(token);
+        if (user == null) {
+            throw new ServerException(ServerErrorCode.WRONG_TOKEN);
+        }
+        return user;
     }
 
     public static void checkNotBlank(String value, ServerErrorCode errorCode) throws ServerException {
         if (value == null || value.isBlank()) {
             throw new ServerException(errorCode);
+        }
+    }
+
+    /**
+     * Список направлений не пустой и не содержит пустых строк.
+     */
+    public static void checkDirections(List<String> directions) throws ServerException {
+        if (directions == null || directions.isEmpty()) {
+            throw new ServerException(ServerErrorCode.EMPTY_DIRECTIONS);
+        }
+        for (String direction : directions) {
+            checkNotBlank(direction, ServerErrorCode.EMPTY_DIRECTION);
         }
     }
 
